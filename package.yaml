@@ -1,0 +1,68 @@
+name:                eirini-route-emitter
+version:             0.1.0.0
+github:              "akshaymankar/eirini-route-emitter"
+license:             BSD3
+author:              "Akshay Mankar"
+maintainer:          "itsakshaymankar@gmail.com"
+copyright:           "Akshay Mankar"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/akshaymankar/eirini-route-emitter#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- kubernetes-client-core
+- kubernetes-client
+- text
+- bytestring
+- http-client
+- yaml
+- errors
+- either
+- base64-bytestring
+- tls
+- containers
+- time
+- old-locale
+- timerep
+- typed-process
+- aeson
+- unordered-containers
+- attoparsec
+
+library:
+  source-dirs: src
+
+executables:
+  eirini-route-emitter-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - eirini-route-emitter
+
+tests:
+  eirini-route-emitter-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - eirini-route-emitter
+    - hspec
+    - hspec-attoparsec

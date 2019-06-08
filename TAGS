@@ -1,0 +1,30 @@
+
+./Setup.hs,15
+main main1,2
+
+./app/Main.hs,37
+module Main Main0,1
+main main4,5
+
+./test/Spec.hs,15
+main main0,1
+
+./src/Lib.hs,42
+module LibLib0,1
+someFunc someFunc4,5
+
+./src/KubernetesExtras/GCPAuth.hs,62
+module KubernetesExtras.GCPAuth KubernetesExtras.GCPAuth0,1
+
+./src/KubernetesExtras/Client.hs,492
+module KubernetesExtras.Client KubernetesExtras.Client0,1
+data KubeConfigSource KubeConfigSource21,22
+data KubeConfigSource = KubeConfigFile KubeConfigFile21,22
+                      | KubeConfigClusterKubeConfigCluster22,23
+kubeClient kubeClient24,25
+tlsValidation tlsValidation38,39
+applyAuthSettings applyAuthSettings45,46
+clientCertFileAuth clientCertFileAuth52,53
+clientCertDataAuth clientCertDataAuth62,63
+tokenAuth tokenAuth73,74
+tokenFileAuth tokenFileAuth78,79
