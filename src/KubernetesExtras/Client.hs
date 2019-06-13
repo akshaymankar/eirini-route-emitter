@@ -3,35 +3,23 @@ module KubernetesExtras.Client where
 
 import Control.Applicative          ((<|>))
 import Control.Error.Safe
-import Data.Aeson                   (Value)
 import Data.Either.Combinators      (rightToMaybe)
 import Data.Function                ((&))
-import Data.HashMap.Strict          (HashMap)
 import Data.Map                     (Map)
 import Data.Maybe                   (fromMaybe)
 import Data.Text                    (Text)
 import Data.Text.Encoding           (encodeUtf8)
 import Data.Time.Clock
-import Data.Time.LocalTime
-import Data.Time.RFC3339
 import Data.Yaml
 import Kubernetes.Client.Config
 import Kubernetes.Client.KubeConfig
 import Kubernetes.OpenAPI.Core
-import KubernetesExtras.JSONPath
+import KubernetesExtras.GCPAuth
 import Network.HTTP.Client          (Manager)
 import Network.TLS                  (ClientParams, credentialLoadX509,
                                      credentialLoadX509FromMemory)
-import System.Environment
-import System.Process.Typed
 
-import qualified Data.Aeson             as Aeson
-import qualified Data.Attoparsec.Text   as A
-import qualified Data.ByteString        as BS
 import qualified Data.ByteString.Base64 as B64
-import qualified Data.HashMap.Strict    as StrictMap
-import qualified Data.Map               as Map
-import qualified Data.Text              as Text
 import qualified Data.Text.Encoding     as Text
 import qualified Data.Text.IO           as Text
 
@@ -71,12 +59,11 @@ addCACert cfg t = fromMaybe t
 
 applyAuthSettings :: AuthInfo -> (ClientParams, KubernetesClientConfig) -> IO (ClientParams, KubernetesClientConfig)
 applyAuthSettings auth input = do
-  currentTime <- getCurrentTime
   let maybeOutput = clientCertFileAuth auth input
                     <|> clientCertDataAuth auth input
                     <|> tokenAuth auth input
                     <|> tokenFileAuth auth input
-                    <|> gcpAuth currentTime auth input
+                    <|> gcpAuth auth input
   case maybeOutput of
      Nothing -> return input
      Just x  -> x
@@ -113,48 +100,3 @@ tokenFileAuth auth (tlsParams, cfg) = do
   return $ do
     t <- Text.readFile file
     return (tlsParams, setTokenAuth t cfg)
-
-gcpAuth :: UTCTime -> AuthInfo -> (ClientParams, KubernetesClientConfig) -> Maybe (IO (ClientParams, KubernetesClientConfig))
-gcpAuth currentTime AuthInfo{authProvider = Just(AuthProviderConfig "gcp" (Just cfg))} input = do
-  cachedGCPAuth currentTime cfg input <|> newGCPAuth cfg input
-gcpAuth _ _ _ = Nothing
-
-cachedGCPAuth :: UTCTime -> Map Text Text -> (ClientParams, KubernetesClientConfig) -> Maybe(IO (ClientParams, KubernetesClientConfig))
-cachedGCPAuth currentTime cfg (tlsParams, kubecfg) = do
-  accessToken <- Map.lookup "access-token" cfg
-  expiry <- zonedTimeToUTC <$> (parseTimeRFC3339 =<< Map.lookup "expiry" cfg)
-  if expiry < currentTime
-    then Nothing
-    else Just $ pure (tlsParams, setTokenAuth accessToken kubecfg)
-
-newGCPAuth :: Map Text Text -> (ClientParams, KubernetesClientConfig) -> Maybe(IO (ClientParams, KubernetesClientConfig))
-newGCPAuth cfg (tlsParams, kubecfg) = do
-  cmdPath <- Map.lookup "cmd-path" cfg
-  cmdArgs <- Map.lookup "cmd-args" cfg
-  let expiryKey = readJSONPath cfg "expiry-key" [InTheCurls [Field "token_expiry"]]
-      tokenKey = readJSONPath cfg "token-key" [InTheCurls [Field "access_token"]]
-  Just $ do
-    let process = proc (Text.unpack cmdPath) (map Text.unpack (Text.splitOn " " cmdArgs))
-    (stdOut, _) <- readProcess_ process
-    case Aeson.decode stdOut :: Maybe Value of
-      Nothing -> error "GCP auth cmd did not return valid JSON"
-      Just creds -> do
-        case runJSONPath tokenKey creds of
-          Left e -> error ("Failed to read creds due to '" ++ Text.unpack e ++ "'")
-          Right accessToken -> pure (tlsParams, setTokenAuth accessToken kubecfg)
-
-readJSONPath :: Map Text Text -> Text -> JSONPath -> JSONPath
-readJSONPath m key def = case Map.lookup key m of
-                           Nothing -> def
-                           Just str -> case A.parseOnly (jsonPathParser <* A.endOfInput) str of
-                                         Left e  -> error e
-                                         Right p -> p
-
-jsonPath :: Text -> Maybe [Text]
-jsonPath p = if Text.head p == '.'
-             then Just $ Text.splitOn "." $ Text.tail p
-             else Nothing
-
-getText :: [Text] -> Value -> Maybe Text
-getText [] (String s)       = Just s
-getText (p:rest) (Object m) = getText rest =<< StrictMap.lookup p m

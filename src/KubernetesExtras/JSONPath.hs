@@ -8,8 +8,11 @@ import Data.Attoparsec.Text
 import Data.Either.Combinators
 import Data.Text
 import Data.Text.Lazy (toStrict)
+import Data.Map (Map)
+import Data.HashMap.Strict (HashMap)
 
-import qualified Data.HashMap.Strict as Map
+import qualified Data.HashMap.Strict as HashMap
+import qualified Data.Map as Map
 
 data ArrayPos = ArrayPosInt Int
               | ArrayPosLast
@@ -71,19 +74,26 @@ runJSONPath (e:es) v = do
   rest <- runJSONPath es v
   pure $ res <> rest
 
-keyNotFoundMessage :: Text -> Map.HashMap Text Value -> Text
+keyNotFoundMessage :: Text -> HashMap Text Value -> Text
 keyNotFoundMessage key m = ("key '" <> key <> "' not found in "
                             <> (toStrict $ encodeToLazyText m))
 
 runPathElement :: PathElement -> Value -> Either Text Text
 runPathElement (PlainText t) _ = pure t
 runPathElement (Field f) (Object o) = maybeToRight (keyNotFoundMessage f o)
-                                      $ (jsonToText <$> Map.lookup f o)
+                                      $ (jsonToText <$> HashMap.lookup f o)
 runPathElement (InTheCurls []) v = pure $ jsonToText v
 runPathElement (InTheCurls ((Field f):fs)) (Object o) = do
-  v <- maybeToRight (keyNotFoundMessage f o) $ Map.lookup f o
+  v <- maybeToRight (keyNotFoundMessage f o) $ HashMap.lookup f o
   runPathElement (InTheCurls fs) v
 
 jsonToText :: Value -> Text
 jsonToText (String t) = t
 jsonToText x = toStrict $ encodeToLazyText x
+
+readJSONPath :: Map Text Text -> Text -> JSONPath -> JSONPath
+readJSONPath m key def = case Map.lookup key m of
+                           Nothing -> def
+                           Just str -> case parseOnly (jsonPathParser <* endOfInput) str of
+                                         Left e  -> error e
+                                         Right p -> p
