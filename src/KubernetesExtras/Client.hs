@@ -17,6 +17,7 @@ import Kubernetes.Client.KubeConfig
 import Kubernetes.OpenAPI.Core
 import KubernetesExtras.Auth.GCP
 import KubernetesExtras.Auth.OIDC
+import KubernetesExtras.TLSUtils
 import Network.HTTP.Client          (Manager)
 import Network.TLS                  (ClientParams, credentialLoadX509,
                                      credentialLoadX509FromMemory)
@@ -60,8 +61,7 @@ addCACertData :: Config -> ClientParams -> ClientParams
 addCACertData cfg t = getCluster cfg
                       & (>>= (maybeToRight "cert not provided" . certificateAuthorityData))
                       & (>>= B64.decode . Text.encodeUtf8 )
-                      & (>>= parsePEMCerts)
-                      & (fmap (flip setCAStore t))
+                      & (>>= updateClientParams t)
                       & (fromRight t)
 
 addCACertFile :: Config -> FilePath -> ClientParams -> IO ClientParams
@@ -75,8 +75,8 @@ addCACertFile cfg dir t = do
     Left _ -> return t
     Right f -> do
       certText <- BS.readFile f
-      return $ parsePEMCerts certText
-        & (fmap (flip setCAStore t))
+      return
+        $ updateClientParams t certText
         & (fromRight t)
 
 applyAuthSettings :: AuthInfo -> (ClientParams, KubernetesClientConfig) -> IO (ClientParams, KubernetesClientConfig)

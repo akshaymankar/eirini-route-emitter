@@ -14,6 +14,7 @@ import Data.Time.Clock.POSIX     (getPOSIXTime)
 import Data.X509
 import Kubernetes.Client         hiding (newManager)
 import Kubernetes.OpenAPI.Core
+import KubernetesExtras.TLSUtils
 import Network.HTTP.Client
 import Network.HTTP.Client.TLS
 import Network.OAuth.OAuth2      as OAuth hiding (error)
@@ -34,7 +35,8 @@ data OIDCAuth = OIDCAuth { issuerURL    :: Text
                          , clientSecret :: Text
                          , tlsParams    :: TLS.ClientParams
                          , idToken      :: Maybe Text
-                         , refreshToken :: Maybe Text}
+                         , refreshToken :: Maybe Text
+                         }
 
 instance AuthMethod OIDCAuth where
   applyAuthMethod cfg oidc req = do
@@ -92,11 +94,11 @@ oidcAuth :: AuthInfo
 oidcAuth AuthInfo{authProvider = Just(AuthProviderConfig "oidc" (Just cfg))} (tls, kubecfg) = Just $ do
   parsedOIDC <- parseOIDCAuthInfo cfg
   case parsedOIDC of
-    Left e     -> error $ Text.unpack e
+    Left e     -> error e
     Right oidc -> pure (tls, addAuthMethod kubecfg oidc)
 oidcAuth _ _ = Nothing
 
-parseOIDCAuthInfo :: Map Text Text -> IO (Either Text OIDCAuth)
+parseOIDCAuthInfo :: Map Text Text -> IO (Either String OIDCAuth)
 parseOIDCAuthInfo m = do
   eitherTLSParams <- parseCA m
   return $ do
@@ -108,38 +110,23 @@ parseOIDCAuthInfo m = do
         refreshToken = Map.lookup "refresh-token" m
     return OIDCAuth{..}
 
-parseCA :: Map Text Text -> IO (Either Text TLS.ClientParams)
+parseCA :: Map Text Text -> IO (Either String TLS.ClientParams)
 parseCA m = do
   t <- defaultTLSClientParams
   fromMaybe (pure $ pure t) (parseCAFile t m <|> parseCAData t m)
 
-parseCAFile :: TLS.ClientParams -> Map Text Text -> Maybe (IO (Either Text TLS.ClientParams))
+parseCAFile :: TLS.ClientParams -> Map Text Text -> Maybe (IO (Either String TLS.ClientParams))
 parseCAFile t m = do
   caFile <- Text.unpack <$> Map.lookup "idp-certificate-authority" m
-  return $ setCAFromFile t caFile
+  return $ updateClientParams t <$> BS.readFile caFile
 
-parseCAData :: TLS.ClientParams -> Map Text Text -> Maybe (IO (Either Text TLS.ClientParams))
+parseCAData :: TLS.ClientParams -> Map Text Text -> Maybe (IO (Either String TLS.ClientParams))
 parseCAData t m = do
   caText <- Map.lookup "idp-certificate-authority-data" m
-  return $ setCAFromMemory t caText
+  pure . pure
+    $ (B64.decode $ Text.encodeUtf8 caText)
+    >>= updateClientParams t
 
-setCAFromMemory :: TLS.ClientParams -> Text -> IO (Either Text TLS.ClientParams)
-setCAFromMemory t caText = return $ do
-  certs <-  parseCAText caText
-  return $ setCAStore certs t
-
-setCAFromFile :: TLS.ClientParams -> FilePath -> IO (Either Text TLS.ClientParams)
-setCAFromFile t f = do
-  caText <- B64.decode <$> BS.readFile f
-  return $ do
-    certs <- mapLeft Text.pack $ parsePEMCerts =<< caText
-    return $ setCAStore certs t
-
-parseCAText :: Text -> Either Text [SignedCertificate]
-parseCAText cert = (B64.decode $ Text.encodeUtf8 cert)
-                   >>= parsePEMCerts
-                   & mapLeft Text.pack
-
-lookupEither :: (Show key, Ord key) => Map key val -> key -> Either Text val
+lookupEither :: (Show key, Ord key) => Map key val -> key -> Either String val
 lookupEither m k = maybeToRight e $ Map.lookup k m
-                   where e = "Couldn't find key: " <> (Text.pack $ show k) <> " in OIDC auth info"
+                   where e = "Couldn't find key: " <> show k <> " in OIDC auth info"
