@@ -44,7 +44,7 @@ library:
   source-dirs: src
 
 executables:
-  eirini-route-emitter-exe:
+  eirini-route-emitter:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
