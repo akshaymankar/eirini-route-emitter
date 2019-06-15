@@ -20,36 +20,34 @@ extra-source-files:
 description:         Please see the README on GitHub at <https://github.com/akshaymankar/eirini-route-emitter#readme>
 
 dependencies:
-- base >= 4.7 && < 5
-- kubernetes-client-core
-- kubernetes-client
-- text
-- bytestring
-- http-client
-- yaml
-- errors
-- either
-- base64-bytestring
-- tls
-- containers
-- time
-- old-locale
-- timerep
-- typed-process
 - aeson
-- unordered-containers
-- attoparsec
-- connection
-- x509
-- pem
-- x509-store
-- tls
 - aeson-casing
-- freer-simple
-- mtl
-- microlens
-- jwt
+- attoparsec
+- base >= 4.7 && < 5
+- base64-bytestring
+- bytestring
+- containers
+- either
+- errors
 - filepath
+- freer-simple
+- http-client
+- jwt
+- kubernetes-client
+- kubernetes-client-core
+- microlens
+- mtl
+- old-locale
+- pem
+- text
+- time
+- timerep
+- tls
+- tls
+- typed-process
+- unordered-containers
+- x509
+- yaml
 
 library:
   source-dirs: src

@@ -11,15 +11,15 @@ packages:
       sha256: b5911b46e3a04f7430f2d3f88df445366e1e4aadfe7676a0d10ad587751a4373
     name: kubernetes-client-core
     version: 0.1.0.0
-    git: git@github.com:kubernetes-client/haskell
+    git: git@github.com:codedownio/haskell
     pantry-tree:
       size: 7455
-      sha256: 532061605e587b9a37e68db589001acdfbc32e3a75b0e16084c9922d002d2987
-    commit: 6b115bc18de5b7b6c0a1aab27d01987183ae8c7e
+      sha256: cc1450ca44ce46a5f23fcd4d3cb19c4066b0d02c7314a22ea6819cb4b5599771
+    commit: e0a4857242c93f686574e462dcd815bcd6f430d4
   original:
     subdir: kubernetes
-    git: git@github.com:kubernetes-client/haskell
-    commit: 6b115bc18de5b7b6c0a1aab27d01987183ae8c7e
+    git: git@github.com:codedownio/haskell
+    commit: e0a4857242c93f686574e462dcd815bcd6f430d4
 - completed:
     subdir: kubernetes-client
     cabal-file:
@@ -27,15 +27,15 @@ packages:
       sha256: 4b4d62e599d06057bde2ad68f8723c6a2932cfd058cb596a604377414821b570
     name: kubernetes-client
     version: 0.1.0.0
-    git: git@github.com:kubernetes-client/haskell
+    git: git@github.com:codedownio/haskell
     pantry-tree:
       size: 664
       sha256: 499fa67dafdbbd645d9765cd23de3f1d1c65a6aa368a8b9d3ba536ae99afb8eb
-    commit: 6b115bc18de5b7b6c0a1aab27d01987183ae8c7e
+    commit: e0a4857242c93f686574e462dcd815bcd6f430d4
   original:
     subdir: kubernetes-client
-    git: git@github.com:kubernetes-client/haskell
-    commit: 6b115bc18de5b7b6c0a1aab27d01987183ae8c7e
+    git: git@github.com:codedownio/haskell
+    commit: e0a4857242c93f686574e462dcd815bcd6f430d4
 - completed:
     hackage: katip-0.8.0.0@sha256:8a74858b692edfdbe83ac377b116111f81b4dcda774024615967d764f9f474b8,4097
     pantry-tree:
@@ -43,6 +43,13 @@ packages:
       sha256: f6baad9ee2edc7ed02d71bd8433872403500ebbdfaead9e4ef226dc47b3c4b97
   original:
     hackage: katip-0.8.0.0
+- completed:
+    hackage: jwt-0.10.0@sha256:d14551b0c357424fb9441ec9a7a9d5b90b13f805fcc9327ba49db548cd64fc29,4180
+    pantry-tree:
+      size: 1027
+      sha256: e0cf95e834d99768ad8a3f7e99246948f0cdd2cfa18813517f540144aea6c3e5
+  original:
+    hackage: jwt-0.10.0
 snapshots:
 - completed:
     size: 498402

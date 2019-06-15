@@ -15,11 +15,12 @@ import Data.Yaml
 import Kubernetes.Client.Config
 import Kubernetes.Client.KubeConfig
 import Kubernetes.OpenAPI.Core
-import KubernetesExtras.GCPAuth
+import KubernetesExtras.Auth.GCP
+import KubernetesExtras.Auth.OIDC
 import Network.HTTP.Client          (Manager)
-import System.FilePath
 import Network.TLS                  (ClientParams, credentialLoadX509,
                                      credentialLoadX509FromMemory)
+import System.FilePath
 
 import qualified Data.ByteString        as BS
 import qualified Data.ByteString.Base64 as B64
@@ -85,6 +86,7 @@ applyAuthSettings auth input = do
                     <|> tokenAuth auth input
                     <|> tokenFileAuth auth input
                     <|> gcpAuth auth input
+                    <|> oidcAuth auth input
   case maybeOutput of
      Nothing -> return input
      Just x  -> x

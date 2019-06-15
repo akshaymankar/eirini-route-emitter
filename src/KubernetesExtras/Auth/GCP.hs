@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
-module KubernetesExtras.GCPAuth
+module KubernetesExtras.Auth.GCP
   ( gcpAuth )
 where
 
