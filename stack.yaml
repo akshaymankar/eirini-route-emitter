@@ -47,6 +47,7 @@ extra-deps:
   - kubernetes-client
 - katip-0.8.0.0
 - jwt-0.10.0
+- oidc-client-0.4.0.0
 
 # Override default flag values for local packages and extra-deps
 # flags: {}

@@ -5,17 +5,22 @@ module KubernetesExtras.Auth.OIDC
 where
 
 import Control.Applicative
-import Data.Time.Clock.POSIX (getPOSIXTime)
 import Data.Either.Combinators
-import Data.Function           ((&))
-import Data.Map                (Map)
+import Data.Function             ((&))
+import Data.Map                  (Map)
 import Data.Maybe
 import Data.Text
+import Data.Time.Clock.POSIX     (getPOSIXTime)
 import Data.X509
-import Kubernetes.Client
+import Kubernetes.Client         hiding (newManager)
 import Kubernetes.OpenAPI.Core
-import Network.TLS             as TLS
-import Web.JWT as JWT
+import Network.HTTP.Client
+import Network.HTTP.Client.TLS
+import Network.OAuth.OAuth2      as OAuth hiding (error)
+import Network.TLS               as TLS
+import URI.ByteString
+import Web.JWT                   as JWT
+import Web.OIDC.Client.Discovery as OIDC
 
 import qualified Data.ByteString        as BS
 import qualified Data.ByteString.Base64 as B64
@@ -33,14 +38,16 @@ data OIDCAuth = OIDCAuth { issuerURL    :: Text
 
 instance AuthMethod OIDCAuth where
   applyAuthMethod cfg oidc req = do
-    token <- getToken oidc >>= exceptEither
+    token <- getToken oidc
     pure
       $ setHeader req [("Authorization", "Bearer " <> (Text.encodeUtf8 token))]
       & L.set rAuthTypesL []
 
-getToken :: OIDCAuth -> IO (Either Text Text)
+-- TODO: Consider a token expired few seconds before actual expiry to account for time skew
+getToken :: OIDCAuth -> IO Text
 getToken o@(OIDCAuth{..}) = do
   now <- getPOSIXTime
+  mgr <- newManager tlsManagerSettings
   let maybeExp = idToken
                  & (>>= decode)
                  & (fmap claims)
@@ -48,13 +55,34 @@ getToken o@(OIDCAuth{..}) = do
                  & (fmap secondsSinceEpoch)
       isValidToken = fromMaybe False (fmap (now <) maybeExp)
   if not isValidToken
-    then fetchToken o
-    else return $ (maybeToRight "impossible" idToken)
+    then fetchToken mgr o
+    else return $ fromMaybe (error "impossible") idToken
 
-fetchToken :: OIDCAuth -> IO (Either Text Text)
-fetchToken OIDCAuth{..} = undefined
+-- TODO: Somehow remember the new state as a new refresh token can be generated
+fetchToken :: Manager -> OIDCAuth -> IO Text
+fetchToken _ (OIDCAuth{refreshToken=Nothing}) = error "cannot refresh id-token without a refresh token"
+fetchToken mgr o@(OIDCAuth{refreshToken=(Just token),..}) = do
+  tokenEndpoint <- fetchTokenEndpoint mgr o
+  tokenURI <- exceptEither $ parseURI strictURIParserOptions (Text.encodeUtf8 tokenEndpoint)
+  let oauth = OAuth2{ oauthClientId = clientID
+                    , oauthClientSecret = clientSecret
+                    , oauthAccessTokenEndpoint = tokenURI
+                    , oauthOAuthorizeEndpoint = tokenURI
+                    , oauthCallback = Nothing
+                    }
+  oauthToken <- refreshAccessToken mgr oauth (RefreshToken token)
+                >>= exceptEither
+  case OAuth.idToken oauthToken of
+    Nothing -> error "token response did not contain an id_token, either the scope \"openid\" wasn't requested upon login, or the provider doesn't support id_tokens as part of the refresh response."
+    Just (IdToken t) -> return t
 
-exceptEither :: Either Text a -> IO a
+fetchTokenEndpoint :: Manager -> OIDCAuth -> IO Text
+fetchTokenEndpoint mgr OIDCAuth{..} = do
+  discover issuerURL mgr
+    & (fmap configuration)
+    & (fmap tokenEndpoint)
+
+exceptEither :: Show b => Either b a -> IO a
 exceptEither (Right a) = pure a
 exceptEither (Left t)  = error (show t)
 
@@ -64,7 +92,7 @@ oidcAuth :: AuthInfo
 oidcAuth AuthInfo{authProvider = Just(AuthProviderConfig "oidc" (Just cfg))} (tls, kubecfg) = Just $ do
   parsedOIDC <- parseOIDCAuthInfo cfg
   case parsedOIDC of
-    Left e -> error $ Text.unpack e
+    Left e     -> error $ Text.unpack e
     Right oidc -> pure (tls, addAuthMethod kubecfg oidc)
 oidcAuth _ _ = Nothing
 

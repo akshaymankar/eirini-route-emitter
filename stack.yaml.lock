@@ -50,6 +50,13 @@ packages:
       sha256: e0cf95e834d99768ad8a3f7e99246948f0cdd2cfa18813517f540144aea6c3e5
   original:
     hackage: jwt-0.10.0
+- completed:
+    hackage: oidc-client-0.4.0.0@sha256:f72a496ab27d9a5071be44e750718c539118ac52c2f1535a5fb3dde7f9874a55,3306
+    pantry-tree:
+      size: 1153
+      sha256: 68c285c6365360975d50bbb18cb07755d5ef19af8bf0e998d3ea46d35ef4a4e1
+  original:
+    hackage: oidc-client-0.4.0.0
 snapshots:
 - completed:
     size: 498402

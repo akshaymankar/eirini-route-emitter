@@ -31,12 +31,15 @@ dependencies:
 - errors
 - filepath
 - freer-simple
+- hoauth2
 - http-client
+- http-client-tls
 - jwt
 - kubernetes-client
 - kubernetes-client-core
 - microlens
 - mtl
+- oidc-client
 - old-locale
 - pem
 - text
@@ -46,6 +49,7 @@ dependencies:
 - tls
 - typed-process
 - unordered-containers
+- uri-bytestring
 - x509
 - yaml
 
