@@ -3,7 +3,8 @@ module KubernetesExtras.Client where
 
 import Control.Applicative          ((<|>))
 import Control.Error.Safe
-import Data.Either.Combinators      (rightToMaybe)
+import Data.Either                  (fromRight)
+import Data.Either.Combinators      (maybeToRight, rightToMaybe)
 import Data.Function                ((&))
 import Data.Map                     (Map)
 import Data.Maybe                   (fromMaybe)
@@ -16,10 +17,13 @@ import Kubernetes.Client.KubeConfig
 import Kubernetes.OpenAPI.Core
 import KubernetesExtras.GCPAuth
 import Network.HTTP.Client          (Manager)
+import System.FilePath
 import Network.TLS                  (ClientParams, credentialLoadX509,
                                      credentialLoadX509FromMemory)
 
+import qualified Data.ByteString        as BS
 import qualified Data.ByteString.Base64 as B64
+import qualified Data.Text              as Text
 import qualified Data.Text.Encoding     as Text
 import qualified Data.Text.IO           as Text
 
@@ -32,7 +36,8 @@ kubeClient (KubeConfigFile f) = do
   uri <- rightZ (server <$> getCluster kubeConfigFile)
   t <- defaultTLSClientParams
        & fmap (tlsValidation kubeConfigFile )
-       & fmap (addCACert kubeConfigFile)
+       & fmap (addCACertData kubeConfigFile)
+       & (>>= addCACertFile kubeConfigFile (takeDirectory f))
   c <- newConfig & fmap (setMasterURI uri)
   (tlsParams, cfg) <-
     case getAuthInfo kubeConfigFile of
@@ -49,13 +54,29 @@ tlsValidation cfg t = case getCluster cfg of
                                            Just True -> disableServerCertValidation t
                                            _ -> t
 
-addCACert :: Config -> ClientParams -> ClientParams
-addCACert cfg t = fromMaybe t
-                      $ ((flip setCAStore) t)
-                        <$> ((rightToMaybe . parsePEMCerts)
-                             =<< ((rightToMaybe . B64.decode . Text.encodeUtf8)
-                                  =<< (certificateAuthorityData
-                                       =<< (rightToMaybe $ getCluster cfg))))
+-- TODO: Error if base64 decoding or PEM parsing fails
+addCACertData :: Config -> ClientParams -> ClientParams
+addCACertData cfg t = getCluster cfg
+                      & (>>= (maybeToRight "cert not provided" . certificateAuthorityData))
+                      & (>>= B64.decode . Text.encodeUtf8 )
+                      & (>>= parsePEMCerts)
+                      & (fmap (flip setCAStore t))
+                      & (fromRight t)
+
+addCACertFile :: Config -> FilePath -> ClientParams -> IO ClientParams
+addCACertFile cfg dir t = do
+  let certFile = getCluster cfg
+                 & (>>= maybeToRight "cert file not provided" . certificateAuthority)
+                 & (fmap Text.unpack)
+                 & (fmap (dir </>))
+  _ <- print certFile
+  case certFile of
+    Left _ -> return t
+    Right f -> do
+      certText <- BS.readFile f
+      return $ parsePEMCerts certText
+        & (fmap (flip setCAStore t))
+        & (fromRight t)
 
 applyAuthSettings :: AuthInfo -> (ClientParams, KubernetesClientConfig) -> IO (ClientParams, KubernetesClientConfig)
 applyAuthSettings auth input = do

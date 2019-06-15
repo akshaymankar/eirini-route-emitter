@@ -39,6 +39,17 @@ dependencies:
 - aeson
 - unordered-containers
 - attoparsec
+- connection
+- x509
+- pem
+- x509-store
+- tls
+- aeson-casing
+- freer-simple
+- mtl
+- microlens
+- jwt
+- filepath
 
 library:
   source-dirs: src
