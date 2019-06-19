@@ -2,6 +2,7 @@
 module KubernetesExtras.Client where
 
 import Control.Applicative          ((<|>))
+import Control.Concurrent.STM
 import Control.Error.Safe
 import Data.Either                  (fromRight)
 import Data.Either.Combinators      (maybeToRight, rightToMaybe)
@@ -32,22 +33,22 @@ import qualified Data.Text.IO           as Text
 data KubeConfigSource = KubeConfigFile FilePath
                       | KubeConfigCluster
 
-kubeClient :: KubeConfigSource -> IO (Manager, KubernetesClientConfig)
-kubeClient (KubeConfigFile f) = do
+kubeClient :: OIDCCache -> KubeConfigSource -> IO (Manager, KubernetesClientConfig)
+kubeClient oidcCache (KubeConfigFile f) = do
   kubeConfigFile <- decodeFileThrow f
   uri <- rightZ (server <$> getCluster kubeConfigFile)
   t <- defaultTLSClientParams
-       & fmap (tlsValidation kubeConfigFile )
+       & fmap (tlsValidation kubeConfigFile)
        & fmap (addCACertData kubeConfigFile)
        & (>>= addCACertFile kubeConfigFile (takeDirectory f))
   c <- newConfig & fmap (setMasterURI uri)
   (tlsParams, cfg) <-
     case getAuthInfo kubeConfigFile of
       Left _          -> return (t,c)
-      Right (_, auth)-> applyAuthSettings auth (t, c)
+      Right (_, auth)-> applyAuthSettings oidcCache auth (t, c)
   mgr <- newManager tlsParams
   return (mgr, cfg)
-kubeClient (KubeConfigCluster) = Kubernetes.Client.Config.cluster
+kubeClient _ (KubeConfigCluster) = Kubernetes.Client.Config.cluster
 
 tlsValidation :: Config -> ClientParams -> ClientParams
 tlsValidation cfg t = case getCluster cfg of
@@ -70,7 +71,6 @@ addCACertFile cfg dir t = do
                  & (>>= maybeToRight "cert file not provided" . certificateAuthority)
                  & (fmap Text.unpack)
                  & (fmap (dir </>))
-  _ <- print certFile
   case certFile of
     Left _ -> return t
     Right f -> do
@@ -79,14 +79,17 @@ addCACertFile cfg dir t = do
         $ updateClientParams t certText
         & (fromRight t)
 
-applyAuthSettings :: AuthInfo -> (ClientParams, KubernetesClientConfig) -> IO (ClientParams, KubernetesClientConfig)
-applyAuthSettings auth input = do
+applyAuthSettings :: OIDCCache
+                  -> AuthInfo
+                  -> (ClientParams, KubernetesClientConfig)
+                  -> IO (ClientParams, KubernetesClientConfig)
+applyAuthSettings oidcCache auth input = do
   let maybeOutput = clientCertFileAuth auth input
                     <|> clientCertDataAuth auth input
                     <|> tokenAuth auth input
                     <|> tokenFileAuth auth input
                     <|> gcpAuth auth input
-                    <|> oidcAuth auth input
+                    <|> cachedOIDCAuth oidcCache auth input
   case maybeOutput of
      Nothing -> return input
      Just x  -> x

@@ -42,10 +42,10 @@ dependencies:
 - oidc-client
 - old-locale
 - pem
+- stm
 - text
 - time
 - timerep
-- tls
 - tls
 - typed-process
 - unordered-containers

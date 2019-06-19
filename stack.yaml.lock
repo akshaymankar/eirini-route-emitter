@@ -24,7 +24,7 @@ packages:
     subdir: kubernetes-client
     cabal-file:
       size: 2890
-      sha256: 4b4d62e599d06057bde2ad68f8723c6a2932cfd058cb596a604377414821b570
+      sha256: db029a319c72e006535c79d9a5dc00904eb9c9a9b6c769847500aeb09c5da37e
     name: kubernetes-client
     version: 0.1.0.0
     git: git@github.com:codedownio/haskell
