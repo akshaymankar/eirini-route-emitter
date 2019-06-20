@@ -24,16 +24,17 @@ import Kubernetes.OpenAPI.Core
 import Kubernetes.OpenAPI.MimeTypes
 import Kubernetes.OpenAPI.Model
 import Network.HTTP.Client           (Manager)
+import Network.Nats.Client
 
+import qualified Data.ByteString      as LB
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.Map             as Map
 
-data RouteMessage = RouteMessage { registeredRoutes :: [Text]
-                                 , unregistedRoutes :: [Text]
-                                 , instanceID       :: Text
-                                 , name             :: Text
-                                 , address          :: Text
-                                 , port             :: Word32
+data RouteMessage = RouteMessage { uris              :: [Text]
+                                 , app               :: Text
+                                 , host              :: Text
+                                 , port              :: Word32
+                                 , privateInstanceId :: Text
                                  }
   deriving (Show, Eq)
 
@@ -41,6 +42,7 @@ data RouteAnnotation = RouteAnnotation { raHostname :: Text, raPort :: Word32}
   deriving (Show, Eq)
 
 $(deriveJSON (aesonPrefix snakeCase) ''RouteAnnotation)
+$(deriveJSON (defaultOptions{fieldLabelModifier = snakeCase}) ''RouteMessage)
 
 data KubeResponse r where
   ExecuteRequest :: (Produces req accept, MimeUnrender accept res, MimeType contentType)
@@ -78,9 +80,21 @@ extractRoute statefulsets pod = do
 
 mkRouteMessage :: V1Pod -> RouteAnnotation -> Maybe RouteMessage
 mkRouteMessage pod (RouteAnnotation host port) = do
-  instanceID <- v1ObjectMetaName =<< v1PodMetadata pod
-  address <- v1PodStatusPodIp =<< v1PodStatus pod
-  let registeredRoutes = [host]
-      unregistedRoutes = []
-      name = instanceID
+  privateInstanceId <- v1ObjectMetaName =<< v1PodMetadata pod
+  host <- v1PodStatusPodIp =<< v1PodStatus pod
+  let uris = [host]
+      app = privateInstanceId
   return RouteMessage{..}
+
+data NatsOperation f where
+  NatsPublish :: Subject -> LB.ByteString -> NatsOperation ()
+makeEffect ''NatsOperation
+
+interpretNatsOperationInIO :: NatsClient -> Eff '[NatsOperation] a -> IO a
+interpretNatsOperationInIO client = runM . translate (natsOperationToIO client)
+
+natsOperationToIO :: NatsClient -> NatsOperation r -> IO r
+natsOperationToIO natsClient (NatsPublish subject payload) = publish natsClient subject payload
+
+sendRoutes :: Member NatsOperation m => Subject -> [RouteMessage] -> Eff m ()
+sendRoutes subject = mapM_ (natsPublish subject . LBS.toStrict . encode)

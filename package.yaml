@@ -52,6 +52,7 @@ dependencies:
 - uri-bytestring
 - x509
 - yaml
+- nats-client
 
 library:
   source-dirs: src
