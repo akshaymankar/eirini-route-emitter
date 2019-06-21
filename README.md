@@ -7,7 +7,7 @@
   1. List all statefulsets in the namespace
   1. Use the owner references field on pods to find the owner statefulset
   1. Read routes from statefulsets. The statefulsets have annotation called `routes` on them, which is JSON representation of the routes which are supposed to route to the pod. It looks like:
-     ```json
+     ```
      [
        {
          "hostname": "app.domain.example.com", //represents the hostname go-router listens to
@@ -20,7 +20,7 @@
      ]
      ```
    1. Create a route message for each route-pod combination, which looks like this in json:
-      ```json
+      ```
       {
         "uris": ["app.domain.example.com"],
         "app": "name of pod",
