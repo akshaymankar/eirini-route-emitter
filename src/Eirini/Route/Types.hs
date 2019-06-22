@@ -5,10 +5,10 @@ module Eirini.Route.Types
   )
 where
 
+import Data.Aeson.Casing
 import Data.Aeson.TH
 import Data.Text
 import GHC.Word
-import Data.Aeson.Casing
 
 data RouteMessage = RouteMessage { uris              :: [Text]
                                  , app               :: Text

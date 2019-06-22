@@ -8,6 +8,7 @@ where
 import Control.Monad.Freer
 import Data.Aeson                    (decode)
 import Data.Maybe
+import Data.OpenUnion.Internal
 import Data.Text.Encoding            (encodeUtf8)
 import Eirini.Route.Types
 import FreerKube.Response
@@ -19,7 +20,7 @@ import Kubernetes.OpenAPI.Model
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.Map             as Map
 
-collectRoutes :: Member KubeResponse m => Namespace -> Eff m [RouteMessage]
+collectRoutes :: FindElem KubeResponse m => Namespace -> Eff m [RouteMessage]
 collectRoutes ns = do
   pods <- v1PodListItems <$> (executeRequest $ listNamespacedPod (Accept MimeJSON) ns)
   statefulsets <- v1StatefulSetListItems <$> (executeRequest $ listNamespacedStatefulSet (Accept MimeJSON) ns)
