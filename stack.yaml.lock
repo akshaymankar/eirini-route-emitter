@@ -11,31 +11,31 @@ packages:
       sha256: b5911b46e3a04f7430f2d3f88df445366e1e4aadfe7676a0d10ad587751a4373
     name: kubernetes-client-core
     version: 0.1.0.0
-    git: git@github.com:codedownio/haskell
+    git: git@github.com:kubernetes-client/haskell
     pantry-tree:
       size: 7455
       sha256: cc1450ca44ce46a5f23fcd4d3cb19c4066b0d02c7314a22ea6819cb4b5599771
-    commit: e0a4857242c93f686574e462dcd815bcd6f430d4
+    commit: a158dcd7dcd1669d4551a5afeb5c304f1e54a53f
   original:
     subdir: kubernetes
-    git: git@github.com:codedownio/haskell
-    commit: e0a4857242c93f686574e462dcd815bcd6f430d4
+    git: git@github.com:kubernetes-client/haskell
+    commit: a158dcd7dcd1669d4551a5afeb5c304f1e54a53f
 - completed:
     subdir: kubernetes-client
     cabal-file:
       size: 2890
-      sha256: db029a319c72e006535c79d9a5dc00904eb9c9a9b6c769847500aeb09c5da37e
+      sha256: 4b4d62e599d06057bde2ad68f8723c6a2932cfd058cb596a604377414821b570
     name: kubernetes-client
     version: 0.1.0.0
-    git: git@github.com:codedownio/haskell
+    git: git@github.com:kubernetes-client/haskell
     pantry-tree:
       size: 664
-      sha256: 499fa67dafdbbd645d9765cd23de3f1d1c65a6aa368a8b9d3ba536ae99afb8eb
-    commit: e0a4857242c93f686574e462dcd815bcd6f430d4
+      sha256: ab90222895ccd4992eea9addb2aa64448a95a216090bd6d2b5df2a44cbc88c34
+    commit: a158dcd7dcd1669d4551a5afeb5c304f1e54a53f
   original:
     subdir: kubernetes-client
-    git: git@github.com:codedownio/haskell
-    commit: e0a4857242c93f686574e462dcd815bcd6f430d4
+    git: git@github.com:kubernetes-client/haskell
+    commit: a158dcd7dcd1669d4551a5afeb5c304f1e54a53f
 - completed:
     hackage: katip-0.8.0.0@sha256:8a74858b692edfdbe83ac377b116111f81b4dcda774024615967d764f9f474b8,4097
     pantry-tree:

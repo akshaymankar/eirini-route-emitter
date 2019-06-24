@@ -40,8 +40,8 @@ packages:
 #   commit: e7b331f14bcffb8367cd58fbfc8b40ec7642100a
 #
 extra-deps:
-- git: git@github.com:codedownio/haskell
-  commit: e0a4857242c93f686574e462dcd815bcd6f430d4
+- git: git@github.com:kubernetes-client/haskell
+  commit: a158dcd7dcd1669d4551a5afeb5c304f1e54a53f
   subdirs:
   - kubernetes
   - kubernetes-client
