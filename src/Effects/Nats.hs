@@ -1,11 +1,14 @@
 {-# LANGUAGE DataKinds        #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs            #-}
+{-# LANGUAGE Rank2Types       #-}
 {-# LANGUAGE TemplateHaskell  #-}
-module FreerNats.Client
+{-# LANGUAGE TypeOperators    #-}
+module Effects.Nats
   ( NatsOperation(..)
   , interpretNatsOperationInIO
   , natsPublish
+  , runNatsM
   )
 where
 
@@ -25,3 +28,8 @@ interpretNatsOperationInIO client = runM . translate (natsOperationToIO client)
 natsOperationToIO :: NatsClient -> NatsOperation r -> IO r
 natsOperationToIO natsClient (NatsPublish subject payload) = publish natsClient subject payload
 
+runNatsM :: forall effs a. LastMember IO effs
+         => NatsClient
+         -> Eff (NatsOperation ': effs) a
+         -> Eff effs a
+runNatsM c = interpretM $ natsOperationToIO c

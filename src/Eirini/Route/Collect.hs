@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE GADTs             #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
 module Eirini.Route.Collect
@@ -10,8 +11,9 @@ import Data.Aeson                    (decode)
 import Data.Maybe
 import Data.OpenUnion.Internal
 import Data.Text.Encoding            (encodeUtf8)
+import Effects.Kubernetes
+import Effects.Logging
 import Eirini.Route.Types
-import FreerKube.Response
 import Kubernetes.OpenAPI.API.AppsV1
 import Kubernetes.OpenAPI.API.CoreV1
 import Kubernetes.OpenAPI.MimeTypes
@@ -20,13 +22,16 @@ import Kubernetes.OpenAPI.Model
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.Map             as Map
 
-collectRoutes :: FindElem KubeResponse m => Namespace -> Eff m [RouteMessage]
+collectRoutes :: (FindElem KubeResponse m, FindElem Logger m)
+              => Namespace
+              -> Eff m [RouteMessage]
 collectRoutes ns = do
+  _ <- logDebug "starting to collect routes"
   pods <- v1PodListItems <$> (executeRequest $ listNamespacedPod (Accept MimeJSON) ns)
   statefulsets <- v1StatefulSetListItems <$> (executeRequest $ listNamespacedStatefulSet (Accept MimeJSON) ns)
   return $ concat $ catMaybes $ map (extractRoute statefulsets) pods
 
-extractRoute ::  [V1StatefulSet] -> V1Pod -> Maybe [RouteMessage]
+extractRoute :: [V1StatefulSet] -> V1Pod -> Maybe [RouteMessage]
 extractRoute statefulsets pod = do
   owners <- v1ObjectMetaOwnerReferences =<< v1PodMetadata pod
   ssName <- v1OwnerReferenceName <$> (listToMaybe $ Prelude.filter (\o -> v1OwnerReferenceKind o == "StatefulSet") owners)
@@ -43,4 +48,5 @@ mkRouteMessage pod (RouteAnnotation host port) = do
   let uris = [host]
       app = privateInstanceId
   return RouteMessage{..}
+
 

@@ -2,10 +2,13 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE DataKinds #-}
-module FreerKube.Response
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeOperators #-}
+module Effects.Kubernetes
   ( KubeResponse
   , interpretKubeResponseInIO
   , executeRequest
+  , runKubeM
   )
 where
 
@@ -30,3 +33,10 @@ kubeResponseToIO :: Manager -> KubernetesClientConfig -> KubeResponse r -> IO r
 kubeResponseToIO mgr cfg (ExecuteRequest r) = dispatchMime mgr cfg r
                                               & (fmap mimeResult)
                                               >>= either (error . mimeError) pure
+
+runKubeM :: forall effs a. LastMember IO effs
+                 => Manager
+                 -> KubernetesClientConfig
+                 -> Eff (KubeResponse ': effs) a
+                 -> Eff effs a
+runKubeM mgr cfg = interpretM $ kubeResponseToIO mgr cfg
