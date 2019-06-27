@@ -37,7 +37,7 @@ collectAndPublishIO mgr cfg client subject = do
     . logToStdoutM
     $ collectAndPublish subject
 
-collectAndPublish :: ( FindElem KubeResponse m
+collectAndPublish :: ( FindElem Kube m
                      , FindElem NatsOperation m
                      , FindElem Logger m
                      )

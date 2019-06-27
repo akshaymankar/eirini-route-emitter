@@ -22,7 +22,7 @@ import Kubernetes.OpenAPI.Model
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.Map             as Map
 
-collectRoutes :: (FindElem KubeResponse m, FindElem Logger m)
+collectRoutes :: (FindElem Kube m, FindElem Logger m)
               => Namespace
               -> Eff m [RouteMessage]
 collectRoutes ns = do

@@ -5,8 +5,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeOperators #-}
 module Effects.Kubernetes
-  ( KubeResponse
-  , interpretKubeResponseInIO
+  ( Kube
   , executeRequest
   , runKubeM
   )
@@ -20,23 +19,20 @@ import Network.HTTP.Client (Manager)
 import Kubernetes.OpenAPI.Client
 import Data.Function ((&))
 
-data KubeResponse r where
+data Kube r where
   ExecuteRequest :: (Produces req accept, MimeUnrender accept res, MimeType contentType)
                  => KubernetesRequest req contentType res accept
-                 -> KubeResponse res
-makeEffect ''KubeResponse
+                 -> Kube res
+makeEffect ''Kube
 
-interpretKubeResponseInIO :: Manager -> KubernetesClientConfig -> Eff '[KubeResponse] a -> IO a
-interpretKubeResponseInIO mgr cfg = runM . translate (kubeResponseToIO mgr cfg)
-
-kubeResponseToIO :: Manager -> KubernetesClientConfig -> KubeResponse r -> IO r
-kubeResponseToIO mgr cfg (ExecuteRequest r) = dispatchMime mgr cfg r
+kubeWithConfig :: Manager -> KubernetesClientConfig -> Kube r -> IO r
+kubeWithConfig mgr cfg (ExecuteRequest r) = dispatchMime mgr cfg r
                                               & (fmap mimeResult)
                                               >>= either (error . mimeError) pure
 
 runKubeM :: forall effs a. LastMember IO effs
                  => Manager
                  -> KubernetesClientConfig
-                 -> Eff (KubeResponse ': effs) a
+                 -> Eff (Kube ': effs) a
                  -> Eff effs a
-runKubeM mgr cfg = interpretM $ kubeResponseToIO mgr cfg
+runKubeM mgr cfg = interpretM $ kubeWithConfig mgr cfg
