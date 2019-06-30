@@ -27,8 +27,8 @@ import qualified Data.Text          as Text
 import qualified Data.Text.Encoding as Text
 import qualified Lens.Micro         as L
 
-data GCPAuth = GCPAuth { gcpAccessToken :: Text
-                       , gcpTokenExpiry :: UTCTime
+data GCPAuth = GCPAuth { gcpAccessToken :: Maybe Text
+                       , gcpTokenExpiry :: Maybe UTCTime
                        , gcpCmd         :: ProcessConfig () () ()
                        , gcpTokenKey    :: JSONPath
                        , gcpExpiryKey   :: JSONPath
@@ -56,11 +56,19 @@ exceptEither (Right a) = pure a
 exceptEither (Left t)  = error (show t)
 
 getToken :: GCPAuth -> IO (Either Text Text)
-getToken GCPAuth{..} = do
+getToken g@(GCPAuth{..}) = do
   now <- getCurrentTime
-  if gcpTokenExpiry > now
-    then pure $ pure gcpAccessToken
-    else do
+  maybe (fetchToken g) (pure . Right) $ getCurrentToken now g
+
+getCurrentToken :: UTCTime -> GCPAuth -> Maybe Text
+getCurrentToken now g@(GCPAuth{..})= do
+  exp <- gcpTokenExpiry
+  if exp > now
+    then gcpAccessToken
+    else Nothing
+
+fetchToken :: GCPAuth -> IO (Either Text Text)
+fetchToken GCPAuth{..} = do
     (stdOut, _) <- readProcess_ gcpCmd
     pure
       $ Aeson.eitherDecode stdOut
@@ -69,10 +77,12 @@ getToken GCPAuth{..} = do
 
 parseGCPAuthInfo :: Map Text Text -> Either Text GCPAuth
 parseGCPAuthInfo m = do
-  gcpAccessToken <- lookupEither m "access-token"
-  expiryStr <- lookupEither m "expiry"
-  gcpTokenExpiry <- maybeToRight ("failed to parse token expiry time " <> expiryStr)
-                    $ zonedTimeToUTC <$> parseTimeRFC3339 expiryStr
+  let gcpAccessToken = Map.lookup "access-token" m
+  let expiryStr = Map.lookup "expiry" m
+  gcpTokenExpiry <- case expiryStr of
+                      Nothing -> pure Nothing
+                      Just s -> fmap Just parseTimeInUTC s
+                                & maybeToRight ("failed to parse token expiry time " <> s)
   cmdPath <- Text.unpack <$> lookupEither m "cmd-path"
   cmdArgs <- Text.splitOn " " <$> lookupEither m "cmd-args"
   let gcpCmd = proc cmdPath (map Text.unpack cmdArgs)
@@ -83,3 +93,5 @@ parseGCPAuthInfo m = do
 lookupEither :: (Show key, Ord key) => Map key val -> key -> Either Text val
 lookupEither m k = maybeToRight e $ Map.lookup k m
                    where e = "Couldn't find key: " <> (Text.pack $ show k) <> " in GCP auth info"
+
+parseTimeInUTC s = zonedTimeToUTC <$> parseTimeRFC3339 s
