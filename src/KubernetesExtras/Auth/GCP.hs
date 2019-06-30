@@ -20,6 +20,7 @@ import Kubernetes.OpenAPI.Core
 import KubernetesExtras.JSONPath
 import Network.TLS
 import System.Process.Typed
+import Control.Concurrent.STM
 
 import qualified Data.Aeson         as Aeson
 import qualified Data.Map           as Map
@@ -27,8 +28,9 @@ import qualified Data.Text          as Text
 import qualified Data.Text.Encoding as Text
 import qualified Lens.Micro         as L
 
-data GCPAuth = GCPAuth { gcpAccessToken :: Maybe Text
-                       , gcpTokenExpiry :: Maybe UTCTime
+-- TODO: Add support for scopes based token fetching
+data GCPAuth = GCPAuth { gcpAccessToken :: TVar(Maybe Text)
+                       , gcpTokenExpiry :: TVar(Maybe UTCTime)
                        , gcpCmd         :: ProcessConfig () () ()
                        , gcpTokenKey    :: JSONPath
                        , gcpExpiryKey   :: JSONPath
@@ -45,8 +47,9 @@ gcpAuth :: AuthInfo
         -> (ClientParams, KubernetesClientConfig)
         -> Maybe (IO (ClientParams, KubernetesClientConfig))
 gcpAuth AuthInfo{authProvider = Just(AuthProviderConfig "gcp" (Just cfg))} (tls, kubecfg)
-  = Just $
-      case parseGCPAuthInfo cfg of
+  = Just $ do
+      configOfErr <- parseGCPAuthInfo cfg
+      case configOfErr of
         Left e    -> error $ Text.unpack e
         Right gcp -> pure (tls, addAuthMethod kubecfg gcp)
 gcpAuth _ _ = Nothing
@@ -56,42 +59,55 @@ exceptEither (Right a) = pure a
 exceptEither (Left t)  = error (show t)
 
 getToken :: GCPAuth -> IO (Either Text Text)
-getToken g@(GCPAuth{..}) = do
+getToken g@(GCPAuth{..}) = getCurrentToken g
+                           >>= maybe (fetchToken g) (return . Right)
+
+getCurrentToken :: GCPAuth -> IO (Maybe Text)
+getCurrentToken g@(GCPAuth{..})= do
   now <- getCurrentTime
-  maybe (fetchToken g) (pure . Right) $ getCurrentToken now g
+  maybeExp <- atomically $ readTVar gcpTokenExpiry
+  maybeToken <- atomically $ readTVar gcpAccessToken
+  return $ do
+    exp <- maybeExp
+    if exp > now
+      then maybeToken
+      else Nothing
 
-getCurrentToken :: UTCTime -> GCPAuth -> Maybe Text
-getCurrentToken now g@(GCPAuth{..})= do
-  exp <- gcpTokenExpiry
-  if exp > now
-    then gcpAccessToken
-    else Nothing
-
+-- TODO: log if parsed expiry is invalid
 fetchToken :: GCPAuth -> IO (Either Text Text)
 fetchToken GCPAuth{..} = do
-    (stdOut, _) <- readProcess_ gcpCmd
-    pure
-      $ Aeson.eitherDecode stdOut
-      & mapLeft Text.pack
-      >>= runJSONPath gcpTokenKey
+  _ <- print "lolololol"
+  (stdOut, _) <- readProcess_ gcpCmd
+  let credsJSON = Aeson.eitherDecode stdOut
+                    & mapLeft Text.pack
+      token =  runJSONPath gcpTokenKey =<< credsJSON
+      expText = runJSONPath gcpExpiryKey =<< credsJSON
+      exp = parseExpiryTime =<< expText
+  atomically $ writeTVar gcpAccessToken (rightToMaybe token)
+  atomically $ writeTVar gcpTokenExpiry (either (const Nothing) id exp)
+  return token
 
-parseGCPAuthInfo :: Map Text Text -> Either Text GCPAuth
+parseGCPAuthInfo :: Map Text Text -> IO (Either Text GCPAuth)
 parseGCPAuthInfo m = do
-  let gcpAccessToken = Map.lookup "access-token" m
-  let expiryStr = Map.lookup "expiry" m
-  gcpTokenExpiry <- case expiryStr of
-                      Nothing -> pure Nothing
-                      Just s -> fmap Just parseTimeInUTC s
-                                & maybeToRight ("failed to parse token expiry time " <> s)
-  cmdPath <- Text.unpack <$> lookupEither m "cmd-path"
-  cmdArgs <- Text.splitOn " " <$> lookupEither m "cmd-args"
-  let gcpCmd = proc cmdPath (map Text.unpack cmdArgs)
-      gcpTokenKey = readJSONPath m "token-key" [InTheCurls [Field "token_expiry"]]
-      gcpExpiryKey = readJSONPath m "expiry-key" [InTheCurls [Field "access_token"]]
-  pure $ GCPAuth{..}
+  gcpAccessToken <- atomically $ newTVar $ Map.lookup "access-token" m
+  case maybe (pure Nothing) parseExpiryTime $ Map.lookup "expiry" m of
+    (Left e) -> return $ Left e
+    Right t -> do
+      gcpTokenExpiry <- atomically $ newTVar t
+      return $ do
+        cmdPath <- Text.unpack <$> lookupEither m "cmd-path"
+        cmdArgs <- Text.splitOn " " <$> lookupEither m "cmd-args"
+        let gcpCmd = proc cmdPath (map Text.unpack cmdArgs)
+            gcpTokenKey = readJSONPath m "token-key" [InTheCurls [Field "token_expiry"]]
+            gcpExpiryKey = readJSONPath m "expiry-key" [InTheCurls [Field "access_token"]]
+        pure $ GCPAuth{..}
 
 lookupEither :: (Show key, Ord key) => Map key val -> key -> Either Text val
 lookupEither m k = maybeToRight e $ Map.lookup k m
                    where e = "Couldn't find key: " <> (Text.pack $ show k) <> " in GCP auth info"
 
-parseTimeInUTC s = zonedTimeToUTC <$> parseTimeRFC3339 s
+-- When Right, always returns Just
+parseExpiryTime :: Text -> Either Text (Maybe UTCTime)
+parseExpiryTime s = zonedTimeToUTC <$> parseTimeRFC3339 s
+                    & maybeToRight ("failed to parse token expiry time " <> s)
+                    & either Left (pure . Just)
