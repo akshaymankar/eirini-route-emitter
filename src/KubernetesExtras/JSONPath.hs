@@ -1,99 +1,57 @@
 {-# LANGUAGE OverloadedStrings #-}
 module KubernetesExtras.JSONPath where
 
-import Control.Applicative
 import Data.Aeson
 import Data.Aeson.Text
+import Data.JSONPath
+import Data.Map        as Map
+import Data.Text       as Text
+
+import Control.Applicative  ((<|>))
 import Data.Attoparsec.Text
-import Data.Either.Combinators
-import Data.Text
-import Data.Text.Lazy (toStrict)
-import Data.Map (Map)
-import Data.HashMap.Strict (HashMap)
+import Data.Bifunctor       (bimap)
+import Data.String          (IsString)
+import Data.Text.Lazy       (toStrict)
 
-import qualified Data.HashMap.Strict as HashMap
-import qualified Data.Map as Map
+data K8sPathElement = PlainText Text
+                    | JSONPath [JSONPathElement]
+  deriving  (Show, Eq)
 
-data ArrayPos = ArrayPosInt Int
-              | ArrayPosLast
-  deriving (Show, Eq)
+k8sJSONPath :: Parser [K8sPathElement]
+k8sJSONPath = many1 pathElementParser
 
-data PathElement = PlainText Text
-                 | CurrentObject
-                 | RecursiveDecent [PathElement]
-                 | Wildcard
-                 | Field Text
-                 | ArrayElements { naStart :: Int
-                                 , naEnd   :: ArrayPos
-                                 , naStep  :: Int
-                                 }
-                 | Union [PathElement]
-                 | Filter
-                 | Range [PathElement]
-                 | InTheCurls [PathElement]
-  deriving (Show, Eq)
-
-type JSONPath = [PathElement]
-
-jsonPathParser :: Parser [PathElement]
-jsonPathParser = many1 pathElementParser
-
-pathElementParser :: Parser PathElement
+pathElementParser :: Parser K8sPathElement
 pathElementParser = curlsParser <|> plainTextParser
 
-plainTextParser :: Parser PathElement
+plainTextParser :: Parser K8sPathElement
 plainTextParser = PlainText <$> takeWhile1 (/= '{')
 
-curlsParser :: Parser PathElement
-curlsParser = do
-  _ <- char '{'
-  fields <- Prelude.concat
-            <$> many1 (fieldParserWithBrackets <|> many1 fieldParserWithDots)
-  _ <- char '}'
-  return $ InTheCurls fields
+curlsParser :: Parser K8sPathElement
+curlsParser = JSONPath <$> (char '{' *> jsonPath <* char '}')
 
-fieldParserWithBrackets :: Parser [PathElement]
-fieldParserWithBrackets = do
-  _ <- char '['
-  _ <- char '\''
-  fields <- many1 fieldParserWithDots
-  _ <- char '\''
-  _ <- char ']'
-  return fields
-
-fieldParserWithDots :: Parser PathElement
-fieldParserWithDots = do
-  _ <- (char '.' *> string "") <|> string ""
-  field <- takeWhile1 $ notInClass ".}'["
-  return $ Field field
-
-runJSONPath :: [PathElement] -> Value -> Either Text Text
+runJSONPath :: [K8sPathElement] -> Value -> Either Text Text
 runJSONPath [] _ = pure ""
 runJSONPath (e:es) v = do
   res <- runPathElement e v
   rest <- runJSONPath es v
   pure $ res <> rest
 
-keyNotFoundMessage :: Text -> HashMap Text Value -> Text
-keyNotFoundMessage key m = ("key '" <> key <> "' not found in "
-                            <> (toStrict $ encodeToLazyText m))
-
-runPathElement :: PathElement -> Value -> Either Text Text
+runPathElement :: K8sPathElement -> Value -> Either Text Text
 runPathElement (PlainText t) _ = pure t
-runPathElement (Field f) (Object o) = maybeToRight (keyNotFoundMessage f o)
-                                      $ (jsonToText <$> HashMap.lookup f o)
-runPathElement (InTheCurls []) v = pure $ jsonToText v
-runPathElement (InTheCurls ((Field f):fs)) (Object o) = do
-  v <- maybeToRight (keyNotFoundMessage f o) $ HashMap.lookup f o
-  runPathElement (InTheCurls fs) v
+runPathElement (JSONPath p) v  = encodeResult $ executeJSONPath' p v
+
+readJSONPath :: Map Text Text -> Text -> [K8sPathElement] -> [K8sPathElement]
+readJSONPath m key def = case Map.lookup key m of
+                           Nothing -> def
+                           Just str -> case parseOnly (k8sJSONPath <* endOfInput) str of
+                                         Left e  -> error e
+                                         Right p -> p
+
+encodeResult :: ExecutionResult Value -> Either Text Text
+encodeResult (ResultValue val) = return $ jsonToText val
+encodeResult (ResultList vals) = return $ (intercalate " " $ Prelude.map jsonToText vals)
+encodeResult (ResultError err) = Left $ pack err
 
 jsonToText :: Value -> Text
 jsonToText (String t) = t
-jsonToText x = toStrict $ encodeToLazyText x
-
-readJSONPath :: Map Text Text -> Text -> JSONPath -> JSONPath
-readJSONPath m key def = case Map.lookup key m of
-                           Nothing -> def
-                           Just str -> case parseOnly (jsonPathParser <* endOfInput) str of
-                                         Left e  -> error e
-                                         Right p -> p
+jsonToText x          = toStrict $ encodeToLazyText x

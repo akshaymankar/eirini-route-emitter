@@ -10,6 +10,7 @@ import Data.Either.Combinators
 import Data.Function             ((&))
 import Data.Map                  (Map)
 import Data.Text                 (Text)
+import Data.JSONPath
 import Data.Time.Clock
 import Data.Time.LocalTime
 import Data.Time.RFC3339
@@ -32,8 +33,8 @@ import qualified Lens.Micro         as L
 data GCPAuth = GCPAuth { gcpAccessToken :: TVar(Maybe Text)
                        , gcpTokenExpiry :: TVar(Maybe UTCTime)
                        , gcpCmd         :: ProcessConfig () () ()
-                       , gcpTokenKey    :: JSONPath
-                       , gcpExpiryKey   :: JSONPath
+                       , gcpTokenKey    :: [K8sPathElement]
+                       , gcpExpiryKey   :: [K8sPathElement]
                        }
 
 instance AuthMethod GCPAuth where
@@ -98,8 +99,8 @@ parseGCPAuthInfo m = do
         cmdPath <- Text.unpack <$> lookupEither m "cmd-path"
         cmdArgs <- Text.splitOn " " <$> lookupEither m "cmd-args"
         let gcpCmd = proc cmdPath (map Text.unpack cmdArgs)
-            gcpTokenKey = readJSONPath m "token-key" [InTheCurls [Field "token_expiry"]]
-            gcpExpiryKey = readJSONPath m "expiry-key" [InTheCurls [Field "access_token"]]
+            gcpTokenKey = readJSONPath m "token-key" [JSONPath [KeyChild "token_expiry"]]
+            gcpExpiryKey = readJSONPath m "expiry-key" [JSONPath [KeyChild "access_token"]]
         pure $ GCPAuth{..}
 
 lookupEither :: (Show key, Ord key) => Map key val -> key -> Either Text val

@@ -39,6 +39,7 @@ dependencies:
 - kubernetes-client-core
 - microlens
 - mtl
+- nats-client
 - oidc-client
 - old-locale
 - pem
@@ -50,9 +51,10 @@ dependencies:
 - typed-process
 - unordered-containers
 - uri-bytestring
+- utf8-string
+- vector
 - x509
 - yaml
-- nats-client
 
 library:
   source-dirs: src
@@ -80,3 +82,4 @@ tests:
     - eirini-route-emitter
     - hspec
     - hspec-attoparsec
+    - file-embed
