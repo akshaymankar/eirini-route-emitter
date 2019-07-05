@@ -77,7 +77,6 @@ getCurrentToken g@(GCPAuth{..})= do
 -- TODO: log if parsed expiry is invalid
 fetchToken :: GCPAuth -> IO (Either Text Text)
 fetchToken GCPAuth{..} = do
-  _ <- print "lolololol"
   (stdOut, _) <- readProcess_ gcpCmd
   let credsJSON = Aeson.eitherDecode stdOut
                     & mapLeft Text.pack
