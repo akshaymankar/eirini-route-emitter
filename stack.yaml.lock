@@ -64,6 +64,20 @@ packages:
       sha256: 2011ece8f739f4e9d62469f70bb26a64584fdf2f25c559794f83b2fb07223335
   original:
     hackage: nats-client-0.1.0.0
+- completed:
+    cabal-file:
+      size: 1755
+      sha256: 48b127dcd697cc55f74fd5ef78ff49e2123af577a23665d9666d504a95061554
+    name: jsonpath
+    version: 0.1.0.0
+    git: git@github.com:akshaymankar/jsonpath-hs
+    pantry-tree:
+      size: 1249
+      sha256: 2909b1a7db3a025e906a13fa0eb302a0acca08b00b9f8a90f42decf57e0ee52a
+    commit: 0b67016d7f613fc77df90034d25dce5e01aad201
+  original:
+    git: git@github.com:akshaymankar/jsonpath-hs
+    commit: 0b67016d7f613fc77df90034d25dce5e01aad201
 snapshots:
 - completed:
     size: 498402

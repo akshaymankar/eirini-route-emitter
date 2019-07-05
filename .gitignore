@@ -1,3 +1,4 @@
 .stack-work/
 eirini-route-emitter.cabal
 *~
+dist-newstyle/

@@ -49,6 +49,8 @@ extra-deps:
 - jwt-0.10.0
 - oidc-client-0.4.0.0
 - nats-client-0.1.0.0
+- git: git@github.com:akshaymankar/jsonpath-hs
+  commit: 0b67016d7f613fc77df90034d25dce5e01aad201
 
 # Override default flag values for local packages and extra-deps
 # flags: {}

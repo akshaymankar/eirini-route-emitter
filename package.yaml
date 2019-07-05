@@ -34,6 +34,7 @@ dependencies:
 - hoauth2
 - http-client
 - http-client-tls
+- jsonpath
 - jwt
 - kubernetes-client
 - kubernetes-client-core

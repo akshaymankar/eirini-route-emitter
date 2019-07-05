@@ -38,7 +38,7 @@ runJSONPath (e:es) v = do
 
 runPathElement :: K8sPathElement -> Value -> Either Text Text
 runPathElement (PlainText t) _ = pure t
-runPathElement (JSONPath p) v  = encodeResult $ executeJSONPath' p v
+runPathElement (JSONPath p) v  = encodeResult $ executeJSONPath p v
 
 readJSONPath :: Map Text Text -> Text -> [K8sPathElement] -> [K8sPathElement]
 readJSONPath m key def = case Map.lookup key m of
