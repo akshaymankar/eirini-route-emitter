@@ -82,7 +82,8 @@ fetchToken GCPAuth{..} = do
                     & mapLeft Text.pack
       token =  runJSONPath gcpTokenKey =<< credsJSON
       expText = runJSONPath gcpExpiryKey =<< credsJSON
-      exp = parseExpiryTime =<< expText
+      exp :: Either Text (Maybe UTCTime)
+      exp = Just <$> (parseExpiryTime =<< expText)
   atomically $ writeTVar gcpAccessToken (rightToMaybe token)
   atomically $ writeTVar gcpTokenExpiry (either (const Nothing) id exp)
   return token
@@ -90,7 +91,7 @@ fetchToken GCPAuth{..} = do
 parseGCPAuthInfo :: Map Text Text -> IO (Either Text GCPAuth)
 parseGCPAuthInfo m = do
   gcpAccessToken <- atomically $ newTVar $ Map.lookup "access-token" m
-  case maybe (pure Nothing) parseExpiryTime $ Map.lookup "expiry" m of
+  case maybe (pure Nothing) ((Just <$>) . parseExpiryTime) $ Map.lookup "expiry" m of
     (Left e) -> return $ Left e
     Right t -> do
       gcpTokenExpiry <- atomically $ newTVar t
@@ -106,8 +107,6 @@ lookupEither :: (Show key, Ord key) => Map key val -> key -> Either Text val
 lookupEither m k = maybeToRight e $ Map.lookup k m
                    where e = "Couldn't find key: " <> (Text.pack $ show k) <> " in GCP auth info"
 
--- When Right, always returns Just
-parseExpiryTime :: Text -> Either Text (Maybe UTCTime)
+parseExpiryTime :: Text -> Either Text UTCTime
 parseExpiryTime s = zonedTimeToUTC <$> parseTimeRFC3339 s
                     & maybeToRight ("failed to parse token expiry time " <> s)
-                    & either Left (pure . Just)
