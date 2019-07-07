@@ -2,24 +2,27 @@
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes        #-}
+{-# LANGUAGE RecordWildCards   #-}
 module Eirini.IntegrationSpec where
 
+import Control.Concurrent.MVar
 import Control.Monad
 import Control.Monad.Freer
 import Control.Monad.Freer.TH
+import Data.Aeson
 import Data.Function                ((&))
 import Data.List                    (find)
 import Data.OpenUnion.Internal
 import Effects.Kubernetes
 import Effects.Nats
+import Eirini.Route.Types
 import Kubernetes.Client.Watch
 import Kubernetes.OpenAPI.Model
 import Kubernetes.OpenAPI.ModelLens
 import Lens.Micro
 import Network.Nats.Client
-import Test.Hspec
-import Control.Concurrent.MVar
 import System.Timeout
+import Test.Hspec
 
 import qualified Data.Map as Map
 
@@ -91,6 +94,12 @@ spec kube nats ns = do
         maybeMsg <- timeout (90 * seconds) $ takeMVar recieved
         case maybeMsg of
           Nothing -> expectationFailure "didn't recieve message in time"
-          Just msg -> return ()
+          Just (Message msg) ->
+            case decodeStrict msg of
+              Nothing               -> return ()
+              Just RouteMessage{..} -> do
+                uris `shouldBe` ["foo.example.com"]
+                port `shouldBe` 8080
+          _ -> expectationFailure "Unexpected message recieved on NATS"
 
 seconds = 1000000

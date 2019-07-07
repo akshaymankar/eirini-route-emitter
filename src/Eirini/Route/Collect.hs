@@ -47,10 +47,10 @@ extractRoute statefulsets pod = do
   sequence $ Prelude.map (mkRouteMessage pod) routes
 
 mkRouteMessage :: V1Pod -> RouteAnnotation -> Maybe RouteMessage
-mkRouteMessage pod (RouteAnnotation host port) = do
+mkRouteMessage pod (RouteAnnotation uri port) = do
   privateInstanceId <- v1ObjectMetaName =<< v1PodMetadata pod
   host <- v1PodStatusPodIp =<< v1PodStatus pod
-  let uris = [host]
+  let uris = [uri]
       app = privateInstanceId
   return RouteMessage{..}
 
