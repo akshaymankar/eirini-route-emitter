@@ -43,6 +43,7 @@ dependencies:
 - microlens
 - mtl
 - nats-client
+- network
 - oidc-client
 - old-locale
 - optparse-applicative
@@ -99,4 +100,3 @@ tests:
     dependencies:
     - eirini-route-emitter
     - hspec
-    - network

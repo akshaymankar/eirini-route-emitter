@@ -53,5 +53,3 @@ mkRouteMessage pod (RouteAnnotation uri port) = do
   let uris = [uri]
       app = privateInstanceId
   return RouteMessage{..}
-
-
