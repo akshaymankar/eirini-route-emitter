@@ -13,16 +13,22 @@ import Data.Text                    (Text)
 import Data.Text.Encoding           (encodeUtf8)
 import Data.Time.Clock
 import Data.Yaml
+import Katip
 import Kubernetes.Client.Config
 import Kubernetes.Client.KubeConfig
 import Kubernetes.OpenAPI.Core
+import Kubernetes.OpenAPI.Logging
 import KubernetesExtras.Auth.GCP
 import KubernetesExtras.Auth.OIDC
+import Kubernetes.OpenAPI.Logging
+import Katip
+import System.IO (stdout)
 import KubernetesExtras.TLSUtils
 import Network.HTTP.Client          (Manager)
 import Network.TLS                  (ClientParams, credentialLoadX509,
                                      credentialLoadX509FromMemory)
 import System.FilePath
+import System.IO                    (stdout)
 
 import qualified Data.ByteString        as BS
 import qualified Data.ByteString.Base64 as B64
@@ -47,8 +53,16 @@ kubeClient oidcCache (KubeConfigFile f) = do
       Left _          -> return (t,c)
       Right (_, auth)-> applyAuthSettings oidcCache auth (t, c)
   mgr <- newManager tlsParams
-  return (mgr, cfg)
+  logContext <- mkLogContext InfoS
+  return (mgr, cfg{ configLogExecWithContext = stdoutLoggingExec
+                  , configLogContext = logContext
+                  })
 kubeClient _ (KubeConfigCluster) = Kubernetes.Client.Config.cluster
+
+mkLogContext :: Severity -> IO LogContext
+mkLogContext severity = do
+  handleScribe <- mkHandleScribe ColorIfTerminal stdout (permitItem severity) V2
+  registerScribe "stdout" handleScribe defaultScribeSettings =<< initLogEnv "MyApp" "production"
 
 tlsValidation :: Config -> ClientParams -> ClientParams
 tlsValidation cfg t = case getCluster cfg of

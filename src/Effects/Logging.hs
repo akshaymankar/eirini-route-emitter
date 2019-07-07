@@ -17,6 +17,7 @@ import Control.Monad.Freer
 import Control.Monad.Freer.TH
 import Data.Time.Clock
 import Data.Text
+import Katip
 import Prelude                hiding (log)
 
 data LogLevel = Debug

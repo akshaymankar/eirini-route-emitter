@@ -21,6 +21,7 @@ import Kubernetes.OpenAPI.Model
 
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.Map             as Map
+import qualified Data.Text            as Text
 
 collectRoutes :: (FindElem Kube m, FindElem Logger m)
               => Namespace
@@ -29,11 +30,11 @@ collectRoutes ns = do
   _ <- logDebug "starting to collect routes"
   podList <- executeRequest $ listNamespacedPod (Accept MimeJSON) ns
   let pods = v1PodListItems podList
-  _ <- logDebug $ "pods list meta continue: " <> (maybe "not there" id $ v1ListMetaContinue =<< v1PodListMetadata podList)
   ssList <- executeRequest $ listNamespacedStatefulSet (Accept MimeJSON) ns
   let statefulsets = v1StatefulSetListItems ssList
-  _ <- logDebug $ "SS list meta continue: " <> (maybe "not there" id $ v1ListMetaContinue =<< v1StatefulSetListMetadata ssList)
-  return $ concat $ catMaybes $ map (extractRoute statefulsets) pods
+  let routes = concat $ catMaybes $ map (extractRoute statefulsets) pods
+  _ <- logDebug $ "collected: " <> (Text.pack $ show $ length routes)
+  return routes
 
 extractRoute :: [V1StatefulSet] -> V1Pod -> Maybe [RouteMessage]
 extractRoute statefulsets pod = do
