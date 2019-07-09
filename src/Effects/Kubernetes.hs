@@ -15,6 +15,7 @@ module Effects.Kubernetes
   , deleteNamespace
   , createStatefulSet
   , getStatefulSet
+  , listStatefulSets
   , deleteStatefulSet
   , listPods
   )

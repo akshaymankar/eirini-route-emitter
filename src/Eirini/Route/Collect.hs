@@ -28,12 +28,10 @@ collectRoutes :: (FindElem Kube m, FindElem Logger m)
               -> Eff m [RouteMessage]
 collectRoutes ns = do
   _ <- logDebug "starting to collect routes"
-  podList <- executeRequest $ listNamespacedPod (Accept MimeJSON) ns
-  let pods = v1PodListItems podList
-  ssList <- executeRequest $ listNamespacedStatefulSet (Accept MimeJSON) ns
-  let statefulsets = v1StatefulSetListItems ssList
+  pods <- v1PodListItems <$>listPods ns
+  statefulsets <- v1StatefulSetListItems <$> listStatefulSets ns
   let routes = concat $ catMaybes $ map (extractRoute statefulsets) pods
-  _ <- logDebug $ "collected: " <> (Text.pack $ show $ length routes)
+  _ <- logDebug $ "collected: " <> (Text.pack $ show $ length routes) <> " routes"
   return routes
 
 extractRoute :: [V1StatefulSet] -> V1Pod -> Maybe [RouteMessage]
