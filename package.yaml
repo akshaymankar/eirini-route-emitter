@@ -51,6 +51,7 @@ dependencies:
 - stm
 - streaming
 - streaming-bytestring
+- safe-exceptions
 - text
 - time
 - timerep

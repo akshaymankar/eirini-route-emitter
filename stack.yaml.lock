@@ -7,35 +7,35 @@ packages:
 - completed:
     subdir: kubernetes
     cabal-file:
-      size: 5791
-      sha256: b5911b46e3a04f7430f2d3f88df445366e1e4aadfe7676a0d10ad587751a4373
+      size: 5850
+      sha256: ead7f32310c7362585f57bcad0500f6000df33d3d00b859ffcb581097f2b10c8
     name: kubernetes-client-core
-    version: 0.1.0.0
-    git: git@github.com:kubernetes-client/haskell
+    version: 0.1.0.1
+    git: git@github.com:akshaymankar/kubernetes-client-haskell
     pantry-tree:
       size: 7455
-      sha256: cc1450ca44ce46a5f23fcd4d3cb19c4066b0d02c7314a22ea6819cb4b5599771
-    commit: a158dcd7dcd1669d4551a5afeb5c304f1e54a53f
+      sha256: eb0b3d2809e1f0561813b3b16263b24de5510af509a56d0ae6c922c42f37022e
+    commit: 10ea92625bce2baab560cce523b6a3b2c17121d5
   original:
     subdir: kubernetes
-    git: git@github.com:kubernetes-client/haskell
-    commit: a158dcd7dcd1669d4551a5afeb5c304f1e54a53f
+    git: git@github.com:akshaymankar/kubernetes-client-haskell
+    commit: 10ea92625bce2baab560cce523b6a3b2c17121d5
 - completed:
     subdir: kubernetes-client
     cabal-file:
-      size: 2890
-      sha256: db029a319c72e006535c79d9a5dc00904eb9c9a9b6c769847500aeb09c5da37e
+      size: 4595
+      sha256: 568ce861a77cd6035be90d0fba994111c987df5a13fa1af575cdd4d41b248bf2
     name: kubernetes-client
-    version: 0.1.0.0
-    git: git@github.com:kubernetes-client/haskell
+    version: 0.1.0.1
+    git: git@github.com:akshaymankar/kubernetes-client-haskell
     pantry-tree:
-      size: 664
-      sha256: ab90222895ccd4992eea9addb2aa64448a95a216090bd6d2b5df2a44cbc88c34
-    commit: a158dcd7dcd1669d4551a5afeb5c304f1e54a53f
+      size: 1608
+      sha256: 912a603366e5b5f78ed9a7c5ec6b5591a9e5bd9f916b65327aaba1811d4c1f5e
+    commit: 10ea92625bce2baab560cce523b6a3b2c17121d5
   original:
     subdir: kubernetes-client
-    git: git@github.com:kubernetes-client/haskell
-    commit: a158dcd7dcd1669d4551a5afeb5c304f1e54a53f
+    git: git@github.com:akshaymankar/kubernetes-client-haskell
+    commit: 10ea92625bce2baab560cce523b6a3b2c17121d5
 - completed:
     hackage: katip-0.8.0.0@sha256:8a74858b692edfdbe83ac377b116111f81b4dcda774024615967d764f9f474b8,4097
     pantry-tree:
@@ -65,19 +65,12 @@ packages:
   original:
     hackage: nats-client-0.1.0.0
 - completed:
-    cabal-file:
-      size: 1755
-      sha256: 48b127dcd697cc55f74fd5ef78ff49e2123af577a23665d9666d504a95061554
-    name: jsonpath
-    version: 0.1.0.0
-    git: git@github.com:akshaymankar/jsonpath-hs
+    hackage: jsonpath-0.1.0.1@sha256:55718ac52b25cd8ce80fbdc9079a112344f032b056cfaf30737a29b6bd1a5c12,2377
     pantry-tree:
-      size: 1249
-      sha256: 2909b1a7db3a025e906a13fa0eb302a0acca08b00b9f8a90f42decf57e0ee52a
-    commit: 0b67016d7f613fc77df90034d25dce5e01aad201
+      size: 1097
+      sha256: 027749c943abaa6a78adc58e5abd4b3f42644c17c5fb7edf816557424a79448b
   original:
-    git: git@github.com:akshaymankar/jsonpath-hs
-    commit: 0b67016d7f613fc77df90034d25dce5e01aad201
+    hackage: jsonpath-0.1.0.1
 - completed:
     hackage: json-stream-0.4.2.4@sha256:8b7f17d54a6e1e6311756270f8bcf51e91bab4300945400de66118470dcf51b9,4716
     pantry-tree:

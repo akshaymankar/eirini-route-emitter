@@ -40,8 +40,8 @@ packages:
 #   commit: e7b331f14bcffb8367cd58fbfc8b40ec7642100a
 #
 extra-deps:
-- git: git@github.com:kubernetes-client/haskell
-  commit: a158dcd7dcd1669d4551a5afeb5c304f1e54a53f
+- git: git@github.com:akshaymankar/kubernetes-client-haskell
+  commit: 10ea92625bce2baab560cce523b6a3b2c17121d5
   subdirs:
   - kubernetes
   - kubernetes-client
@@ -49,8 +49,7 @@ extra-deps:
 - jwt-0.10.0
 - oidc-client-0.4.0.0
 - nats-client-0.1.0.0
-- git: git@github.com:akshaymankar/jsonpath-hs
-  commit: 0b67016d7f613fc77df90034d25dce5e01aad201
+- jsonpath-0.1.0.1
 - json-stream-0.4.2.4
 
 # Override default flag values for local packages and extra-deps

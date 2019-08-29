@@ -85,6 +85,10 @@ kubeWithConfig mgr cfg (DeleteNamespace name) =
 kubeWithConfig mgr cfg (ListPods ns) =
   let req = CoreV1.listNamespacedPod (Accept MimeJSON) ns
   in kubeWithConfig mgr cfg (ExecuteRequest req)
+kubeWithConfig mgr cfg (ListStatefulSets ns) =
+  let req = AppsV1.listNamespacedStatefulSet (Accept MimeJSON) ns
+  in kubeWithConfig mgr cfg (ExecuteRequest req)
+
 
 kubeWithConfig mgr cfg (CreateStatefulSet ss ns) =
   let req = AppsV1.createNamespacedStatefulSet (ContentType MimeJSON) (Accept MimeJSON) ss ns

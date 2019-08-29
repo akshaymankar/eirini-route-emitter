@@ -8,7 +8,7 @@ import Effects.Kubernetes
 import Effects.Nats
 import Eirini.IntegrationSpec
 import Kubernetes.OpenAPI.Model
-import KubernetesExtras.Client
+import Kubernetes.Client
 import Network.Nats.Client      as Nats
 import Network.Socket
 import Options.Applicative

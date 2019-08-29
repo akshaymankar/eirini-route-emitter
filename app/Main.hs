@@ -9,18 +9,15 @@ import Control.Concurrent.STM
 import Control.Monad
 import Control.Monad.Freer
 import Data.OpenUnion.Internal
-import Data.Text
 import Effects.Kubernetes
 import Effects.Logging
 import Effects.Nats
 import Eirini.Route.Collect
 import Eirini.Route.Publish
-import Eirini.Route.Types
+import Kubernetes.Client
 import Kubernetes.OpenAPI.Model
-import KubernetesExtras.Auth.OIDC
-import KubernetesExtras.Client
 import Network.Nats.Client
-import Network.Socket             (HostName, PortNumber)
+import Network.Socket           (HostName, PortNumber)
 import Options.Applicative
 
 import qualified Data.Map as Map
@@ -33,11 +30,10 @@ data Options = Options { kubeConfigFile :: Maybe FilePath
 
 optionsParser :: Parser Options
 optionsParser = Options
-                <$> option auto (long "kubeconfig"
-                                 <> value Nothing
-                                 <> metavar "PATH"
-                                 <> help "location of kube config, leave empty to use in cluster config"
-                                )
+                <$> optional (strOption (long "kubeconfig"
+                                          <> metavar "PATH"
+                                          <> help "location of kube config, leave empty to use in cluster config"
+                                        ))
                 <*> strOption (long "nats-host"
                                <> value "localhost"
                                <> metavar "HOST"
